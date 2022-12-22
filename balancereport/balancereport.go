@@ -1,6 +1,7 @@
 package balancereport
 
 import (
+	"fmt"
 	"context"
 	"time"
 	"math/big"
@@ -62,7 +63,9 @@ func (br *BalanceReport) GetReport(ctx context.Context, start int64, end int64, 
 		return err
 	}
 
-	file, err := os.Create("balance_report.csv")
+	// Generate the CSV filename using the current date and time
+	csvFilename := fmt.Sprintf("balancereport[%s].csv", time.Now())
+	file, err := os.Create(csvFilename)
 	if err != nil {
 		return err
 	}
@@ -77,6 +80,12 @@ func (br *BalanceReport) GetReport(ctx context.Context, start int64, end int64, 
 		return err
 	}
 
+	// Initialize the current balance mapping
+	currentBalances := make(map[string]*big.Int)
+	for _, address := range addresses {
+		currentBalances[address] = big.NewInt(0)
+	}
+
 	for i, block := range blockRange {
 		// Skip the first block since we don't have a previous balance to compare against
 		if i == 0 {
@@ -89,15 +98,12 @@ func (br *BalanceReport) GetReport(ctx context.Context, start int64, end int64, 
 				return err
 			}
 
-			prevBalance, err := br.getBalance(ctx, address, blockRange[i-1])
-			if err != nil {
-				return err
-			}
-
-			dailyChg := new(big.Int).Sub(balance, prevBalance)
+			dailyChg := new(big.Int).Sub(balance, currentBalances[address])
+			currentBalances[address] = balance
 
 			timestamp := big.NewInt(block).Int64()
-			date := time.Unix(timestamp, 0).Format("2006-01-02")
+			// Use the "Jan-02-2006" layout to format the date
+			date := time.Unix(timestamp, 0).Format("Jan-02-2006")
 
 			row := []string{date, strconv.FormatInt(timestamp, 10), strconv.FormatInt(block, 10), address, balance.String(), dailyChg.String()}
 			if err := w.Write(row); err != nil {
