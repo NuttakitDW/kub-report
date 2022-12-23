@@ -132,42 +132,6 @@ func (gb *GoBlock) GetEvery(ctx context.Context, duration time.Duration, start i
 	return blocks, nil
 }
 
-
-// GetEveryAdv returns a slice of blocks at a specified interval between the start and end dates
-func (gb *GoBlock) GetEveryAdv(ctx context.Context, duration time.Duration, start, end time.Time, every int, after bool, refresh bool) ([]int64, error) {
-	// Initialize a slice of dates with the start date
-	var dates []time.Time
-	current := start
-	
-	// Iterate through each date from start to end, adding the duration multiplied by every to the current date each iteration
-	for !current.After(end) {
-		dates = append(dates, current)
-		current = current.Add(duration * time.Duration(every))
-	}
-	
-	// Check if the first and latest blocks, as well as the block time, have been set or if refresh is true
-	// If any of these conditions are met, retrieve the boundary blocks and block time
-	if (gb.firstBlock == Block{} || gb.latestBlock == Block{} || gb.blockTime == 0 || refresh) {
-		gb.getBoundaries(ctx)
-	}
-	
-	// Initialize a slice of blocks
-	var blocks []int64
-	
-	// Iterate through each date, finding the block for that date using the GetDate function
-	// If an error is returned, return nil and the error
-	for _, date := range dates {
-		block, err := gb.GetDate(ctx, date.Unix())
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, block)
-	}
-	
-	// Return the slice of blocks
-	return blocks, nil
-}
-
 func (gb *GoBlock) findBetter(
 	ctx context.Context,
 	date int64,
