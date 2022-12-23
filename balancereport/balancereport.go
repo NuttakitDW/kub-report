@@ -41,7 +41,7 @@ func (br *BalanceReport) getBlockRange(ctx context.Context, start int64, end int
 	defer fmt.Println("Finished getting block range.")
 
 	day := 24 * time.Hour
-	blocks, err := br.goblock.GetEvery(ctx, day, start - 86400, end)
+	blocks, err := br.goblock.GetEvery(ctx, start - 86400, end, day)
 
 	if err != nil {
 		return []int64{}, err
