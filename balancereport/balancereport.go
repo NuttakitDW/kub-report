@@ -41,7 +41,8 @@ func (br *BalanceReport) getBlockRange(ctx context.Context, start int64, end int
 	defer fmt.Println("Finished getting block range.")
 
 	day := 24 * time.Hour
-	blocks, err := br.goblock.GetEvery(ctx, day, start, end)
+	blocks, err := br.goblock.GetEvery(ctx, day, start - 86400, end)
+
 	if err != nil {
 		return []int64{}, err
 	}
@@ -68,7 +69,22 @@ func (br *BalanceReport) getBalance(ctx context.Context, address string, block i
 	return balance, nil
 }
 
+// BlockToDate converts a block number to a date string.
+func (br *BalanceReport) BlockToDate(ctx context.Context, number int64) (string, int64, error) {
+	block, err := br.client.BlockByNumber(ctx, big.NewInt(number))
+	if err != nil {
+		return "", 0, err
+	}
+	timestamp := int64(block.Time())
+	layout := "Jan-02-2006 03:04:05 PM -07 UTC"
+	tm := time.Unix(timestamp, 0).Format(layout)
+	return tm, timestamp ,nil
+}
+
 func (br *BalanceReport) GetReport(ctx context.Context, start int64, end int64, addresses []string) error {
+	if start > end {
+		return fmt.Errorf("start date must be less than end date")
+	}
 	blockRange, err := br.getBlockRange(ctx, start, end)
 	if err != nil {
 		return err
@@ -86,7 +102,7 @@ func (br *BalanceReport) GetReport(ctx context.Context, start int64, end int64, 
 	defer w.Flush()
 
 	// Write the CSV header row
-	headerRow := []string{"date", "timestamp", "block", "address", "daily chg", "ending balance"}
+	headerRow := []string{"date", "timestamp", "block", "address", "dailyChg", "ending balance"}
 	fmt.Println(headerRow)
 	if err := w.Write(headerRow); err != nil {
 		return err
@@ -95,7 +111,11 @@ func (br *BalanceReport) GetReport(ctx context.Context, start int64, end int64, 
 	// Initialize the current balance mapping
 	currentBalances := make(map[string]*big.Int)
 	for _, address := range addresses {
-		currentBalances[address] = big.NewInt(0)
+		balance, err := br.getBalance(ctx, address, blockRange[0])
+		if err != nil {
+			return err
+		}
+		currentBalances[address] = balance
 	}
 
 	for i, block := range blockRange {
@@ -113,11 +133,12 @@ func (br *BalanceReport) GetReport(ctx context.Context, start int64, end int64, 
 			dailyChg := new(big.Int).Sub(balance, currentBalances[address])
 			currentBalances[address] = balance
 
-			timestamp := big.NewInt(block).Int64()
-			// Use the "Jan-02-2006" layout to format the date
-			date := time.Unix(timestamp, 0).Format("Jan-02-2006")
+			date, timestamp, err := br.BlockToDate(ctx, block)
+			if err != nil {
+				return err
+			}
 
-			row := []string{date, strconv.FormatInt(timestamp, 10), strconv.FormatInt(block, 10), address, balance.String(), dailyChg.String()}
+			row := []string{date, strconv.FormatInt(timestamp, 10), strconv.FormatInt(block, 10), address, dailyChg.String(), balance.String()}
 			fmt.Println(row)
 			if err := w.Write(row); err != nil {
 				return err
