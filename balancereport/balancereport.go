@@ -51,15 +51,19 @@ func (br *BalanceReport) getBlockRange(ctx context.Context, start int64, end int
 }
 
 func (br *BalanceReport) getBalance(ctx context.Context, address string, block int64) (*big.Int, error) {
+	// Check if the balance for the given block number has already been saved in the cache
 	if br.isSaved[address][block] {
 		return br.savedBalance[address][block], nil
 	}
+
 	account := common.HexToAddress(address)
 	blockNumber := big.NewInt(block)
 	balance, err := br.client.BalanceAt(ctx, account, blockNumber)
 	if err != nil {
 		return big.NewInt(0), err
 	}
+	
+	// Save the balance in the cache
 	br.isSaved = make(map[string]map[int64]bool)
 	br.savedBalance = make(map[string]map[int64]*big.Int)
 	br.isSaved[address] = make(map[int64]bool)
