@@ -99,35 +99,49 @@ func (gb *GoBlock) GetDateAdv(ctx context.Context, date int64, after bool, refre
 }
 
 
-func (gb *GoBlock) GetEvery(ctx context.Context, duration time.Duration, start int64, end int64) ([]int64, error) {
-	// Check if the first and latest blocks, as well as the block time, have been set
-	// If not, retrieve the boundary blocks and block time
-	if (gb.firstBlock == Block{} || gb.latestBlock == Block{} || gb.blockTime == 0) {
-		gb.getBoundaries(ctx)
-	}
-	
-	// Initialize a slice of blocks
-	var blocks []int64
-	
-	// Set the current date to the start date
+func (gb *GoBlock) GetEvery(ctx context.Context, start int64, end int64, duration time.Duration,) ([]int64, error) {
 	current := time.Unix(start, 0)
-	
-	// Iterate through each date from start to end, adding the duration to the current date each iteration
-	for current.Unix() <= end {
-		// Find the block for the current date using the GetDate function
-		block, err := gb.GetDate(ctx, current.Unix())
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, block)
-		
-		// Add the duration to the current date
+	finish := time.Unix(end, 0)
+	dates := []time.Time{}
+
+	for current.Before(finish) || current.Equal(finish) {
+		dates = append(dates, current)
 		current = current.Add(duration)
 	}
-	
-	// Return the slice of blocks
-	return blocks, nil
+
+	if gb.firstBlock.number == 0 || gb.latestBlock.number == 0 || gb.blockTime == 0 {
+		if err := gb.getBoundaries(ctx); err != nil {
+			return []int64{}, err
+		}
+	}
+
+	results := make(chan int64, len(dates))
+	errors := make(chan error, len(dates))
+
+	for _, date := range dates {
+		go func(date time.Time) {
+			d, err := gb.GetDateAdv(ctx, date.Unix(), true, false)
+			if err != nil {
+				errors <- err
+				return
+			}
+			results <- d
+		}(date)
+	}
+
+	finalResults := []int64{}
+	for i := 0; i < len(dates); i++ {
+		select {
+		case result := <-results:
+			finalResults = append(finalResults, result)
+		case err := <-errors:
+			return []int64{}, err
+		}
+	}
+
+	return finalResults, nil
 }
+
 
 
 func (gb *GoBlock) findBetter(

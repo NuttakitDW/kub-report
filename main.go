@@ -24,8 +24,8 @@ func main() {
 	}
 
 	loc, _ := time.LoadLocation("Asia/Bangkok")
-	startTimestamp := time.Date(2022, 12, 1, 0, 0, 0, 0, loc).Unix()
-	endTimestamp := time.Date(2022, 12, 23, 0, 0, 0, 0, loc).Unix()
+	startTimestamp := time.Date(2022, 11, 1, 0, 0, 0, 0, loc).Unix()
+	endTimestamp := time.Date(2022, 12, 1, 0, 0, 0, 0, loc).Unix()
 
 	// Set the addresses to include in the report
 	addresses := []string{
