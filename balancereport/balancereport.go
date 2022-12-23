@@ -27,11 +27,13 @@ func New(client *ethclient.Client) (*BalanceReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	tr := &BalanceReport{
-		client:    client,
-		goblock:   gb,
+	// Initialize the savedBalance and isSaved maps
+
+	br := &BalanceReport{
+		client:       client,
+		goblock:      gb,
 	}
-	return tr, nil
+	return br, nil
 }
 
 func (br *BalanceReport) getBlockRange(ctx context.Context, start int64, end int64) ([]int64, error) {
@@ -41,7 +43,7 @@ func (br *BalanceReport) getBlockRange(ctx context.Context, start int64, end int
 	startTime := time.Now()
 
 	day := 24 * time.Hour
-	blocks, err := br.goblock.GetEvery(ctx, day, start - int64(day), end)
+	blocks, err := br.goblock.GetEvery(ctx, day, start, end)
 	if err != nil {
 		return []int64{}, err
 	}
@@ -62,6 +64,11 @@ func (br *BalanceReport) getBalance(ctx context.Context, address string, block i
 	if err != nil {
 		return big.NewInt(0), err
 	}
+	br.isSaved = make(map[string]map[int64]bool)
+	br.savedBalance = make(map[string]map[int64]*big.Int)
+	br.isSaved[address] = make(map[int64]bool)
+	br.savedBalance[address] = make(map[int64]*big.Int)
+	br.isSaved[address][block] = true
 	br.savedBalance[address][block] = balance
 	return balance, nil
 }
