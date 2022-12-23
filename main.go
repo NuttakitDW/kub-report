@@ -23,9 +23,9 @@ func main() {
 		return
 	}
 
-	// Set the start and end timestamps for the report
-	startTimestamp := time.Date(2020, 12, 1, 0, 0, 0, 0, time.UTC).Unix()
-	endTimestamp := time.Date(2020, 12, 2, 0, 0, 0, 0, time.UTC).Unix()
+	loc, _ := time.LoadLocation("Asia/Bangkok")
+	startTimestamp := time.Date(2022, 12, 1, 0, 0, 0, 0, loc).Unix()
+	endTimestamp := time.Date(2022, 12, 23, 0, 0, 0, 0, loc).Unix()
 
 	// Set the addresses to include in the report
 	addresses := []string{
