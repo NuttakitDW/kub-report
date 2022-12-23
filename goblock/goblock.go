@@ -100,15 +100,6 @@ func (gb *GoBlock) GetDateAdv(ctx context.Context, date int64, after bool, refre
 
 
 func (gb *GoBlock) GetEvery(ctx context.Context, duration time.Duration, start int64, end int64) ([]int64, error) {
-	// Initialize a slice of dates with the start date
-	var dates []time.Time
-	current := time.Unix(start, 0)
-	// Iterate through each date from start to end, adding the duration to the current date each iteration
-	for !current.After(time.Unix(end, 0)) {
-		dates = append(dates, current)
-		current = current.Add(duration)
-	}
-	
 	// Check if the first and latest blocks, as well as the block time, have been set
 	// If not, retrieve the boundary blocks and block time
 	if (gb.firstBlock == Block{} || gb.latestBlock == Block{} || gb.blockTime == 0) {
@@ -118,19 +109,26 @@ func (gb *GoBlock) GetEvery(ctx context.Context, duration time.Duration, start i
 	// Initialize a slice of blocks
 	var blocks []int64
 	
-	// Iterate through each date, finding the block for that date using the GetDate function
-	// If an error is returned, return nil and the error
-	for _, date := range dates {
-		block, err := gb.GetDate(ctx, date.Unix())
+	// Set the current date to the start date
+	current := time.Unix(start, 0)
+	
+	// Iterate through each date from start to end, adding the duration to the current date each iteration
+	for current.Unix() <= end {
+		// Find the block for the current date using the GetDate function
+		block, err := gb.GetDate(ctx, current.Unix())
 		if err != nil {
 			return nil, err
 		}
 		blocks = append(blocks, block)
+		
+		// Add the duration to the current date
+		current = current.Add(duration)
 	}
 	
 	// Return the slice of blocks
 	return blocks, nil
 }
+
 
 func (gb *GoBlock) findBetter(
 	ctx context.Context,
