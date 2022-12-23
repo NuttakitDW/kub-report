@@ -35,11 +35,20 @@ func New(client *ethclient.Client) (*BalanceReport, error) {
 }
 
 func (br *BalanceReport) getBlockRange(ctx context.Context, start int64, end int64) ([]int64, error) {
+	fmt.Println("Getting block range...")
+	defer fmt.Println("Finished getting block range.")
+
+	startTime := time.Now()
+
 	day := 24 * time.Hour
 	blocks, err := br.goblock.GetEvery(ctx, day, start - int64(day), end)
 	if err != nil {
 		return []int64{}, err
 	}
+
+	elapsedTime := time.Since(startTime)
+	fmt.Printf("Elapsed time: %v\n", elapsedTime)
+
 	return blocks, nil
 }
 
@@ -76,6 +85,7 @@ func (br *BalanceReport) GetReport(ctx context.Context, start int64, end int64, 
 
 	// Write the CSV header row
 	headerRow := []string{"date", "timestamp", "block", "address", "daily chg", "ending balance"}
+	fmt.Println(headerRow)
 	if err := w.Write(headerRow); err != nil {
 		return err
 	}
@@ -106,6 +116,7 @@ func (br *BalanceReport) GetReport(ctx context.Context, start int64, end int64, 
 			date := time.Unix(timestamp, 0).Format("Jan-02-2006")
 
 			row := []string{date, strconv.FormatInt(timestamp, 10), strconv.FormatInt(block, 10), address, balance.String(), dailyChg.String()}
+			fmt.Println(row)
 			if err := w.Write(row); err != nil {
 				return err
 			}
