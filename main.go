@@ -25,7 +25,7 @@ func main() {
 
 	// Set the start and end timestamps for the report
 	startTimestamp := time.Date(2020, 12, 1, 0, 0, 0, 0, time.UTC).Unix()
-	endTimestamp := time.Date(2020, 12, 10, 0, 0, 0, 0, time.UTC).Unix()
+	endTimestamp := time.Date(2020, 12, 2, 0, 0, 0, 0, time.UTC).Unix()
 
 	// Set the addresses to include in the report
 	addresses := []string{
